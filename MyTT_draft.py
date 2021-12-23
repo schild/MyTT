@@ -5,34 +5,32 @@
 
 #------------------------工具函数---------------------------------------------
 
-def HHV(S, N):  #HHV,支持N为序列版本
+def HHV(S, N):    #HHV,支持N为序列版本
     # type: (np.ndarray, Optional[int,float, np.ndarray]) -> np.ndarray
     """
     HHV(C, 5)  # 最近5天收盘最高价
     """
     if isinstance(N, (int, float)):
         return pd.Series(S).rolling(N).max().values
-    else:
-        res = np.repeat(np.nan, len(S))
-        for i in range(len(S)):
-            if (not np.isnan(N[i])) and N[i] <= i + 1:
-                res[i] = S[i + 1 - N[i]:i + 1].max()
-        return res
+    res = np.repeat(np.nan, len(S))
+    for i in range(len(S)):
+        if (not np.isnan(N[i])) and N[i] <= i + 1:
+            res[i] = S[i + 1 - N[i]:i + 1].max()
+    return res
 
     
-def LLV(S, N):   #LLV,支持N为序列版本
+def LLV(S, N):    #LLV,支持N为序列版本
     # type: (np.ndarray, Optional[int,float, np.ndarray]) -> np.ndarray
     """
     LLV(C, 5)  # 最近5天收盘最低价
     """
     if isinstance(N, (int, float)):
         return pd.Series(S).rolling(N).min().values
-    else:
-        res = np.repeat(np.nan, len(S))
-        for i in range(len(S)):
-            if (not np.isnan(N[i])) and N[i] <= i + 1:
-                res[i] = S[i + 1 - N[i]:i + 1].min()
-        return res
+    res = np.repeat(np.nan, len(S))
+    for i in range(len(S)):
+        if (not np.isnan(N[i])) and N[i] <= i + 1:
+            res[i] = S[i + 1 - N[i]:i + 1].min()
+    return res
 
 
 
@@ -112,11 +110,12 @@ def TDX_SAR(High, Low, iAFStep=2, iAFLimit=20):    # type: (np.ndarray, np.ndarr
     :param iAFLimit: AF极限值
     :return: SAR序列
     """
-    af_step = iAFStep / 100;     af_limit = iAFLimit / 100
+    af_step = iAFStep / 100
+    af_limit = iAFLimit / 100
     SarX = np.zeros(len(High))   # 初始化返回数组
 
     # 第一个bar
-    bull = True 
+    bull = True
     af = af_step
     ep = High[0]
     SarX[0] = Low[0]
@@ -127,21 +126,14 @@ def TDX_SAR(High, Low, iAFStep=2, iAFLimit=20):    # type: (np.ndarray, np.ndarr
             if High[i] > ep:  # 创新高
                 ep = High[i]
                 af = min(af + af_step, af_limit)
-        else:  # 空
-            if Low[i] < ep:  # 创新低
-                ep = Low[i]
-                af = min(af + af_step, af_limit)
+        elif Low[i] < ep:  # 创新低
+            ep = Low[i]
+            af = min(af + af_step, af_limit)
         # 2.计算SarX
         SarX[i] = SarX[i - 1] + af * (ep - SarX[i - 1])
 
-        # 3.修正SarX
         if bull:
             SarX[i] = max(SarX[i - 1], min(SarX[i], Low[i], Low[i - 1]))
-        else:
-            SarX[i] = min(SarX[i - 1], max(SarX[i], High[i], High[i - 1]))
-
-        # 4. 判断是否：向下跌破，向上突破
-        if bull:  # 多
             if Low[i] < SarX[i]:  # 向下跌破，转空
                 bull = False
                 tmp_SarX = ep  # 上阶段的最高点
@@ -151,7 +143,9 @@ def TDX_SAR(High, Low, iAFStep=2, iAFLimit=20):    # type: (np.ndarray, np.ndarr
                     SarX[i] = tmp_SarX
                 else:
                     SarX[i] = tmp_SarX + af * (ep - tmp_SarX)
-        else:  # 空
+        else:
+            SarX[i] = min(SarX[i - 1], max(SarX[i], High[i], High[i - 1]))
+
             if High[i] > SarX[i]:  # 向上突破, 转多
                 bull = True
                 ep = High[i]
